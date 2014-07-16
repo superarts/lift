@@ -1,0 +1,7 @@
+.DS_Store
+.cocos-project.json
+frameworks
+runtime
+tools
+
+.*.sw*
