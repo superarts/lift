@@ -12,12 +12,13 @@ app = {
 				height: 0.9,
 				alignment_v: lc.alignment.v.top,
 				nodes: [ {
-					name: 'button_menu_table',
+					name: 'button_menu_auto',
 					type: 'button',
-					text: 'Table Demo',
+					text: 'Auto Demo',
 					color_text: lc.color.white,
 					color_bg: lc.color.metro.blue.dark,
 					action_release: function(type) {
+						/*
 						var scene = cc.Scene.extend({
 							onEnter:function () {
 								this._super();
@@ -27,21 +28,25 @@ app = {
 							}
 						});
 						cc.director.pushScene(new scene());
+						*/
+						lu.controller.push('scene_auto');
 					},
 				}, {
-					name: 'button_menu_old',
+					name: 'button_menu_scroll',
 					type: 'button',
-					text: 'Old Demo',
-					clone: 'button_menu_table',		//	clone keys from other view
+					text: 'Scroll Demo',
+					clone: 'button_menu_auto',		//	clone keys from other view
 					color_bg: lc.color.metro.sky.dark,
 					action_release: function(type) {
-						lu.controller.push('scene_boracay');
+						//text: 'Old Demo',
+						//lu.controller.push('scene_boracay');
+						lu.controller.push('scene_scroll');
 					},
 				}, {
 					name: 'button_menu_tab',
 					type: 'button',
 					text: 'Tab Demo',
-					clone: 'button_menu_table',
+					clone: 'button_menu_auto',
 					color_bg: lc.color.metro.green.dark,
 					action_release: function(type) {
 						lu.controller.push('scene_tab');
@@ -50,7 +55,7 @@ app = {
 					name: 'button_menu_nest',
 					type: 'button',
 					text: 'Nesting Demo',
-					clone: 'button_menu_table',
+					clone: 'button_menu_auto',
 					color_bg: lc.color.metro.purple.dark,
 					action_release: function(type) {
 						lu.controller.push('scene_nest');
@@ -59,7 +64,7 @@ app = {
 					name: 'button_menu_action',
 					type: 'button',
 					text: 'Action Demo',
-					clone: 'button_menu_table',
+					clone: 'button_menu_auto',
 					color_bg: lc.color.metro.red.dark,
 					action_release: function(type) {
 						lu.controller.push('scene_action');
@@ -68,13 +73,47 @@ app = {
 			}, {
 				name: 'label_menu',
 				type: 'label',
-				text: 'This menu itself is a matrix demo.\n(Please ignore "Old Demo" and "Table Demo" for now.)',
+				text: 'This menu itself is a matrix demo.',
 				height: 0.1,
 				alignment_v: lc.alignment.v.bottom,
 				color_bg: lc.color.white,
 			} ]
 		},
 	},
+};
+
+/*
+ * manual
+ */
+app.scenes.scene_scroll = {
+	type: 'scene',
+	nodes: [ {
+		name: 'scroll_scroll_main',
+		type: 'view_scroll',
+		color_bg: lc.color.white,
+		nodes: [ {
+			name: 'button_tab_back',
+			type: 'button',
+			height: 0.1,
+			alignment_v: lc.alignment.v.top,
+			text: 'Back',
+			color_text: lc.color.white,
+			color_bg: lc.color.black,
+			action_release: function() {
+				lu.controller.pop();
+			},
+		} ],
+		init: function(node) {
+			for (var i = 0; i < 16; i++)
+			{
+				var label = cc.LabelTTF.create("test " + (i + 1), "Arial", 100);
+				label.x = 200;
+				label.y = 50 + 100 * i;
+				//var label = lu.label.create(50, i * 100, 500, 100, 'test ' + (i + 1));
+				this.view.add(label);
+			}
+		},
+	} ],
 };
 app.scenes.scene_tab = {
 	type: 'scene',
@@ -105,10 +144,7 @@ app.scenes.scene_tab = {
 				alignment_v: lc.alignment.v.bottom,
 				text: 'This demo shows how to use tab with multiplex view. Check app.scenes.tab for implementation.\n\nPress the "Back" button on top to return to menu.',
 				color_text: lc.color.white,
-				action_release: function() {
-					lu.controller.pop();
-				},
-			}],
+			} ],
 		}, {
 			name: 'view_tab_1',
 			type: 'view',
@@ -195,6 +231,17 @@ app.scenes.scene_nest = {
 				width: 0.2,
 				height: 0.2,
 			} ],
+		}, {
+			name: 'label_nest_bottom',
+			type: 'label',
+			text: 'Related Bottom',
+			alignment_v: 'view_nest_middle',
+			alignment_h: lc.alignment.h.center,
+			y: -10,
+			width: 100,
+			height: 100,
+			color_text: lc.color.white,
+			color_bg: lc.color.grey_dark,
 		} ],
 	}, {
 		name: 'button_nest_back',
@@ -303,4 +350,70 @@ app.scenes.scene_action = {
 			} ],
 		} ],
 	} ],
+};
+
+/*
+ * auto
+ */
+app.scenes.scene_auto = {
+	type: 'scene',
+	nodes: [ {
+		name: 'view_auto_main',
+		type: 'view',
+		color_bg: lc.color.white,
+		nodes: [ {
+			name: 'button_tab_back',
+			type: 'button',
+			height: 0.1,
+			alignment_v: lc.alignment.v.top,
+			text: 'Back',
+			color_text: lc.color.white,
+			color_bg: lc.color.black,
+			action_release: function() {
+				lu.controller.pop();
+			},
+		} ],
+	} ],
+	auto: [
+		{
+			type: 'tab',
+			tabs: [
+				'Tab 1',
+				'Tab 2',
+				'Tab 3',
+			],
+			views: [ [
+				'Title 1',
+				'Description 1.1',
+				'res/test128x128.png',
+				'Description 1.2',
+				'Description 1.3',
+				'Description 1.4',
+				'Description 1.5',
+				'Description 1.6',
+				'Description 1.7',
+				'Description 1.8',
+				'Description 1.9',
+			], [
+				'Title 2',
+				'Description 2',
+				'res/test128x128.png',
+			], [
+				'Title 3',
+				{
+					type: 'matrix',
+					row: 2,
+					height: 0.4,
+					views: [
+						'Contact 1',
+						'Contact 2',
+						'Contact 3',
+						'Contact 4',
+					],
+				},
+				'res/test128x128.png',
+				'Description 3' + '\n\nTODO: fix this length issue\n\nLorem ipsum dolor sit er elit lamet, consectetaur cillium adipisicing pecu, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. Nam liber te conscient to factor tum poen legum odioque civiuda.\n\nLorem ipsum dolor sit er elit lamet, consectetaur cillium adipisicing pecu, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. Nam liber te conscient to factor tum poen legum odioque civiuda.',
+			] ],
+		},
+	],
 };

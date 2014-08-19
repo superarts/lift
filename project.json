@@ -13,7 +13,6 @@
     "jsList" : [
         "src/resource.js",
         "src/lift.js",
-        "src/app.js",
-        "src/test.js"
+        "src/app.js"
     ]
 }

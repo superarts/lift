@@ -15,7 +15,7 @@
 	* Android
 		* cocos run -p android
 		* TODO: change orientation to portrait manually
-		* adb install runtime/android/demo-boracay.apk
+		* adb install runtime/android/demo-boracay-debug.apk
 
 # Resource
 * URL: https://bitbucket.org/superarts/lift-demo-beta

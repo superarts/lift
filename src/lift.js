@@ -19,7 +19,14 @@ var lift = {
 	},
 };
 lift.util.log = function(s1, s2) {
-	cc.log(s1 + ": " + s2);
+	var s = s2;
+	if (s == null)
+		s = '';
+	else if (typeof s === 'object')
+		s = ': ' + s.toSource();
+	else
+		s = ': ' + s;
+	cc.log(s1 + s);
 }
 
 lu = lift.ui;
@@ -43,6 +50,14 @@ lu.constants = {
 			top:		'top',
 			middle:		'middle',
 			bottom:		'bottom',
+		},
+	},
+	font: {
+		size: {
+			large:		cc.director.getWinSize().width / 10,
+			medium:		cc.director.getWinSize().width / 16,
+			small:		cc.director.getWinSize().width / 20,
+			default:	cc.director.getWinSize().width / 20,
 		},
 	},
 	color: {
@@ -149,6 +164,8 @@ lu.view = cc.Node.extend({
 				return this._layer.color;
 			},
 			set: function (color) {
+				if (color === undefined)
+					color = lc.color.clear;
 				this._layer.color = color;
 			},
 		});
@@ -171,7 +188,7 @@ lu.view.create = function(x, y, w, h, color) {
 /*
  * label
  * 	from super: x, y, w, h, color_bg
- * 	properties: text, color_text
+ * 	properties: text, color_text, font_size
  */
 lu.label = lu.view.extend({
 	init_rect_text: function(x, y, w, h, text) {
@@ -182,12 +199,19 @@ lu.label = lu.view.extend({
 			return false;
 		}
 
-		this._label = cc.LabelTTF.create(text, "Arial", 24);
+		var font_size = 24;
+		this._label = cc.LabelTTF.create(text, "Arial", font_size);
 		this._label.x = w / 2;
 		this._label.y = h / 2;
 		this._label.w = w;
 		this._label.h = h;
-		this._label.setDimensions(cc.size(w, h));
+
+		this._label.setDimensions(cc.size(w, 0));
+		//lu.log(text, lu.size_to_string(this._label.getContentSize()));
+		var size = this._label.getContentSize();
+		this._label.setDimensions(cc.size(w, size.height + font_size * 2));
+		//lu.log(text, lu.size_to_string(this._label.getContentSize()));
+
 		this._label.color = lc.color.blue;
 		this._label.setHorizontalAlignment(cc.TEXT_ALIGNMENT_CENTER);
 		this._label.setVerticalAlignment(cc.VERTICAL_TEXT_ALIGNMENT_CENTER);
@@ -229,16 +253,32 @@ lu.label = lu.view.extend({
 				this._label.color = color;
 			},
 		});
+		Object.defineProperty(this, "font_size", {
+			configurable: true,
+			get: function () {
+				return this._label.getFontSize();
+			},
+			set: function (size) {
+				this._label.setFontSize(size);
+			},
+		});
 
 		return true;
 	},
 });
+lu.label.get_height = function(w, text, font_size) {
+	var label = cc.LabelTTF.create(text, "Arial", font_size);
+	label.setDimensions(cc.size(w, 0));
+	//lu.log(text, lu.size_to_string(this._label.getContentSize()));
+	var size = label.getContentSize();
+	return size.height + font_size * 2;
+};
 lu.label.create = function(x, y, w, h, text) {
 	//	cc.log('LABEL create');
 	var label = new lu.label();
 	label.init_rect_text(x, y, w, h, text);
 	return label;
-}
+};
 
 
 /*
@@ -269,6 +309,11 @@ lu.image = lu.view.extend({
 		return true;
 	},
 });
+lu.image.get_size = function(filename) {
+	var image = ccui.ImageView.create();
+	image.loadTexture(filename);
+	return image.getContentSize();
+};
 lu.image.create = function(x, y, w, h, filename) {
 	var image = new lu.image();
 	image.init_rect_filename(x, y, w, h, filename);
@@ -380,10 +425,60 @@ lu.button.create = function(x, y, w, h) {
 	return button;
 }
 
+/*
+ * scroll view
+ * 	from super: x, y, w, h, color_bg
+ * 	properties: add
+ * 	TODO: support horizontal mode
+ */
+lu.view_scroll = lu.view.extend({
+	init_rect: function(x, y, w, h) {
+		if (!lu.view.prototype.init_rect.call(this, x, y, w, h))
+		{
+			cc.log('MULTIPLEX VIEW failed');
+			return false;
+		}
+		this._scroll = new ccui.ScrollView();
+		this._scroll.x  = 0;
+		this._scroll.y  = 0;
+		this._scroll.width	= w;
+		this._scroll.height  = h;
+		this._scroll.setBackGroundColor(lc.color.blue);
+		this._scroll.setDirection(ccui.ScrollView.DIR_VERTICAL);
+		this.addChild(this._scroll);
+
+		return true;
+	},
+	add: function(view) {
+		var size = this._scroll.getInnerContainerSize();
+		var h = view.y + view.height / 2;
+		this._scroll.addChild(view);
+		//	lu.log('SCROLL add', h + ' to ' + size.height + ' (' + view.y + ', ' + view.height + ')');
+		var offset = view.height / 2 - view.y;
+		if (h > size.height)
+			this._scroll.setInnerContainerSize(cc.size(size.width, h));
+		else if (offset > 0)
+		{
+			var children = this._scroll.getChildren();
+			for (var i = 0; i < children.length; i++)
+			{
+				//	lu.log('children ' + i, children[i].y + ' ' + children[i].height);
+				children[i].y += offset;
+			}
+			this._scroll.setInnerContainerSize(cc.size(size.width, size.height + offset));
+		}
+	},
+});
+lu.view_scroll.create = function(x, y, w, h) {
+	var view_scroll = new lu.view_scroll();
+	view_scroll.init_rect(x, y, w, h);
+	return view_scroll;
+};
 
 /*
  * multiplex view
  * 	from super: x, y, w, h, color_bg
+ * 	properties: add
  */
 lu.view_multiplex = lu.view.extend({
 	count: 0,
@@ -402,13 +497,13 @@ lu.view_multiplex = lu.view.extend({
 
 		return true;
 	},
-	layer_add: function(layer) {
+	add: function(layer) {
 		this._multiplex.addLayer(layer);
 		if (this.count == 0)
 			this._multiplex.switchTo(0);
 		this.count++;
 	},
-	layer_switch: function(index) {
+	switch: function(index) {
 		this._multiplex.switchTo(index);
 	},
 });
@@ -441,6 +536,17 @@ lu.process = {
 				h = node.height;
 			else
 				h *= node.height;
+		}
+		else if (node.type == 'label')
+		{
+			node.font_size = node.font_size || lc.font.size.default;
+			h = lu.label.get_height(w, node.text, node.font_size);
+		}
+		else if (node.type == 'image')
+		{
+			var size = lu.image.get_size(node.filename);
+			w = size.width;
+			h = size.height;
 		}
 
 		return cc.size(w, h);
@@ -477,6 +583,16 @@ lu.process = {
 				case lc.alignment.v.bottom:
 					y = 0;
 					break;
+				default:
+					var view = lu.nodes[node.alignment_v].view;
+					if (view !== undefined)
+					{
+						var node_relative = lu.nodes[node.alignment_v];
+						if (node.y > 0)
+							y = view.y + view.h;
+						else
+							y = view.y - size.height;
+					}
 			}
 		}
 		if (typeof node.x == 'number')
@@ -544,8 +660,8 @@ lu.process = {
 			if (subnode.type == 'button')
 			{
 				let layer_index = index;
-				subnode.action = function() {
-					lu.nodes[node.multiplex].view.layer_switch(layer_index);
+				subnode.action_press = function() {
+					lu.nodes[node.multiplex].view.switch(layer_index);
 				};
 				index++;
 			}
@@ -553,15 +669,19 @@ lu.process = {
 
 		return matrix;
 	},
+	view_scroll: function(node) {
+		var rect = lu.process.get_rect(node);
+		var scroll = lu.view_scroll.create(rect.x, rect.y, rect.width, rect.height);
+		scroll.color_bg = node.color_bg;
+		return scroll;
+	},
 	view_multiplex: function(node) {
 		var rect = lu.process.get_rect(node);
 		return lu.view_multiplex.create(rect.x, rect.y, rect.width, rect.height);
 	},
 	label: function(node) {
-		if (node.text === undefined)
-			node.text = '';
-		if (node.color === undefined)
-			node.color = lc.color.blue;
+		node.text = node.text || '';
+		node.color = node.color || lc.color.blue;
 
 		var rect = lu.process.get_rect(node);
 		var label = lu.label.create(rect.x, rect.y, rect.width, rect.height, node.text);
@@ -576,10 +696,8 @@ lu.process = {
 		return image;
 	},
 	button: function(node) {
-		if (node.text === undefined)
-			node.text = '';
-		if (node.color_text === undefined)
-			node.color_text = lc.color.blue;
+		node.text = node.text || '';
+		node.color_text = node.color_text || lc.color.blue;
 
 		var rect = lu.process.get_rect(node);
 		var button = lu.button.create(rect.x, rect.y, rect.width, rect.height);
@@ -633,11 +751,12 @@ lu.process = {
 
 			if (node.type != 'scene')
 			{
-				if (node.root.type == 'view_multiplex')
-					node.root.view.layer_add(node.view);
+				if ((node.root.type == 'view_multiplex') || (node.root.type == 'view_scroll'))
+					node.root.view.add(node.view);
 				else
 					node.root.view.addChild(node.view);
 			}
+			if (typeof node.init === 'function') node.init(node);
 
 			lu.nodes[node.name] = node;
 			//	if (node.root != undefined) lu.log('Added', node.name + ' to ' + node.root.name);
@@ -646,7 +765,174 @@ lu.process = {
 		{
 			lu.log('WARNING unknown view type', node.name);
 		}
-	}
+	},
+
+	auto_tab: function(nodes, node) {
+		if (node.views === undefined)
+		{
+			lu.log('WARNING', 'missing "views" in auto-tab');
+			return;
+		}
+		if (node.tabs === undefined)
+		{
+			lu.log('WARNING', 'missing "tabs" in auto-tab');
+			return;
+		}
+
+		var node_multiplex = {
+			name: 'multiplex_todo',
+			type: 'view_multiplex',
+			height: 0.8,
+			alignment_v: lc.alignment.v.middle,
+			nodes: [],
+		};
+		for (var i = 0; i < node.views.length; i++)
+		{
+			var node_view = {
+				name: 'view_todo_' + i,
+				type: 'view',
+				color_bg: lc.color.metro.sky.light,
+			};
+		}
+		lu.process.automate(node_multiplex.nodes, node.views);
+		nodes.push(node_multiplex);
+
+		var node_tab = {
+			name: 'tab_todo',
+			type: 'tab',
+			multiplex: 'multiplex_todo',
+			height: 0.1,
+			row: 1,
+			alignment_v: lc.alignment.v.bottom,
+			nodes: [],
+		};
+		for (var i = 0; i < node.tabs.length; i++)
+		{
+			if (typeof node.tabs[i] == 'string')
+			{
+				node.tabs[i] = {
+					name: 'button_todo_' + i,
+					type: 'button',
+					text: node.tabs[i],
+					color_text: lc.color.white,
+					color_bg: lc.color.metro.sky.dark,	//	TODO: random color based on theme
+				};
+			}
+		}
+		lu.process.automate(node_tab.nodes, node.tabs);
+		nodes.push(node_tab);
+	},
+	/*
+	auto_view: function(nodes, array) {
+		var node_view = {
+			name: 'view_todo',
+			type: 'view_scroll',
+			nodes: [],
+		};
+		lu.process.automate(node_view.nodes, array);
+		nodes.push(node_view);
+	},
+	*/
+	auto_view_scroll: function(nodes, node) {
+		lu.process.automate(node.nodes, node.views);
+		nodes.push(node);
+	},
+	auto_matrix: function(nodes, node) {
+		lu.process.automate(node.nodes, node.views);
+		nodes.push(node);
+		//	lu.log('matrix', node);
+	},
+	auto_label: function(nodes, node) {
+		node.font_size = node.font_size || lc.font.size.medium;
+		if (nodes.length > 0)
+		{
+			node.alignment_v = nodes[nodes.length - 1].name;
+		}
+		//lu.log(node.text, nodes);
+		nodes.push(node);
+	},
+	auto_image: function(nodes, node) {
+		if (nodes.length > 0)
+		{
+			node.alignment_v = nodes[nodes.length - 1].name;
+		}
+		//lu.log('image', node);
+		nodes.push(node);
+	},
+	automate: function(nodes, nodes_auto) {
+		if (nodes_auto === undefined)
+			return;
+		if (nodes === undefined)
+			nodes = [];
+		for (var i = 0; i < nodes_auto.length; i++)
+		{
+			var node_auto = nodes_auto[i];
+
+			//	1. turn array / string into object
+			if (node_auto instanceof Array) 
+			{
+				//	lu.log('AUTO array');
+				//	this.auto_view(nodes, node_auto);
+				node_auto = {
+					type: 'view_scroll',
+					nodes: [],
+					views: node_auto,
+				};
+			}
+			else if (typeof node_auto === 'string')
+			{
+				//	lu.log('AUTO string', node_auto);
+				if (node_auto.indexOf(".png") > -1)
+				{
+					node_auto = {
+						type: 'image',
+						filename: node_auto,
+					};
+				}
+				else
+				{
+					node_auto = {
+						type: 'label',
+						text: node_auto,
+					};
+				}
+				this.index++;
+			}
+
+			//	2. modify object
+			if (node_auto.type == 'matrix')
+			{
+				node_auto.nodes = node_auto.nodes || [];
+			}
+
+			//	3. process object
+			if (typeof node_auto === 'object')
+			{
+				node_auto.alignment_h = node_auto.alignment_h || lc.alignment.h.center;
+				node_auto.alignment_v = node_auto.alignment_v || lc.alignment.v.top;
+				node_auto.name = node_auto.name || node_auto.type + '_auto_' + this.index;
+
+				if (node_auto.type == 'button')
+					nodes.push(node_auto);
+				else if (node_auto.type == 'view_scroll')
+				{
+					lu.process.automate(node_auto.nodes, node_auto.views);
+					nodes.push(node_auto);
+				}
+				else 
+				{
+					var func_auto = this['auto_' + node_auto.type];
+					if (typeof func_auto === "function")
+						func_auto(nodes, node_auto);
+					else
+						lu.log('WARNING unknown auto type: ' + node_auto.type);
+				}
+			}
+			else
+				lu.log('WARNING unknown auto type');
+		}
+	},
+	index: 0,
 };
 
 
@@ -658,6 +944,7 @@ lu.controller = {
 		var scene = cc.Scene.extend({
 			onEnter:function () {
 				this._super();
+				lu.process.automate(app.scenes[index].nodes[0].nodes, app.scenes[index].auto);
 				lu.process.inflate(app.scenes[index]);
 				this.addChild(app.scenes[index].view);
 			}
