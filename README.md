@@ -1,3 +1,6 @@
+# What is LIFT Framework
+LIFT is a cocos2d-x based framework that allows you to create cross platform apps using JavaScript. Supported platforms include iOS, Android, Windows Phone, Windows, Mac OS X, Linux, web browser, etc. LIFT stands for LIFT Is Fast & Thrilling.
+
 # How to use:
 1. Create new project
 	* cocos new demo-boracay -p app.free.store.lift.boracay -l js -d .
